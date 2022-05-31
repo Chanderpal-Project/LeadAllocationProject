@@ -1,0 +1,105 @@
+trigger TriggerAssignment on Lead (after insert) {
+    
+    //Map declaration
+    
+    Map<String ,List<Lead>> mapOfRegionAndLead = new Map<String,List<Lead>>();
+    Map< String, List<Team_Member__c>> mapOfTeamAndTeamMember = new Map<String, List<Team_Member__c>> ();
+    Map< String, List<State__c>> mapOfTeamAndState = new Map<String, List<State__c>> ();
+    Map<String , List<Lead>> mapOfStateAndLead = new Map<String, List<Lead>> (); 
+    Map<String,String> mapOfStateAndTeam = new Map<String,String>();
+    
+    //Lists declaration
+    
+    List<Lead> leadList= new List<Lead>();
+    List<Id> teamMemberId = new List<Id>();
+    List<Team_Member__c> tmList = new List<Team_Member__c>();
+    List<Lead> lid =new List<Lead>();
+    
+    //Set declaration
+    
+    Set<Id> leadIds = new Set<Id>();
+    
+    for(Lead l : trigger.new)
+    {
+        leadIds.add(l.Id);
+    }
+    
+    //Code for Team member and Team
+    for(Team_Member__c tm:[select id,name,User__c,Weightage__c,Counter__c,Team_Name__r.name from Team_Member__c]){
+        
+        if(mapOfTeamAndTeamMember.containsKey(tm.Team_Name__r.name)){
+            mapOfTeamAndTeamMember.get(tm.Team_Name__r.name).add(tm);
+        }
+        
+        else {
+            mapOfTeamAndTeamMember.put(tm.Team_Name__r.name, new List<Team_Member__c>{tm});
+        }
+    }
+    
+    //Code for State and Lead
+    for(Lead l : Trigger.new){
+        
+        if(mapOfStateAndLead.containsKey(l.State__c))
+        {
+            mapOfStateAndLead.get(l.State__c).add(l);
+        }
+        else{
+            mapOfStateAndLead.put(l.State__c,new List<lead>{l});
+        } 
+    }
+    
+    //Code for Team and State
+    for(State__c s:[Select Id,name,Team__r.Name  from State__c]) 
+    {
+        mapOfStateAndTeam.put(s.name, s.Team__r.Name);
+        
+        if( mapOfTeamAndState.containsKey(s.Team__r.Name))
+        {
+            mapOfTeamAndState.get(s.Team__r.Name).add(s);
+        }
+        
+        else{
+            mapOfTeamAndState.put(s.Team__r.Name,new List<State__c>{s}); 
+        }
+    }
+    
+    for(Lead l : [select id,name,state__c from lead where id IN: leadIds])
+    {
+        Boolean flag = false;
+        String team = mapOfStateAndTeam.get(l.State__c); 
+        
+        for(Team_Member__c tm: mapOfTeamAndTeamMember.get(team))
+        {
+            if(tm.Weightage__c > tm.Counter__c && flag == false)
+            {
+                l.OwnerId = tm.User__c;
+                
+                tm.Counter__c=  tm.counter__c+1;
+                flag = true;
+            }
+            
+            else if(flag == false && tm.Weightage__c == tm.Counter__c)
+            {
+                tm.Counter__c = 0;
+                l.OwnerId= '0055g00000DeRVcAAN';
+            }
+            else 
+            {
+              //  User u = [Select id, Username from User where Username =: 'salesforceforstudents12@gmail.com' limit 1] ;
+              //  l.OwnerId = u.id;
+               //l.OwnerId= '0055g00000DeRVcAAN';
+               
+                
+            }
+            
+            tmList.add(tm);
+            
+        }
+        
+        leadList.add(l);
+        system.debug('llist' +leadList);
+    }
+    
+    update leadList;
+    update tmList;
+}
