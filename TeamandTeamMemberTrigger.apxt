@@ -1,0 +1,21 @@
+trigger TeamAndTeamMember on Team_member__c (after insert) {
+    
+    Map< String, List<id>> mapOfTeamAndTeamMember = new Map< String, List<id>> ();
+    List<Team__c> teamList = new List<Team__c>();
+   
+    for(Team_member__c T : Trigger.new){
+        
+        if( mapOfTeamAndTeamMember.containsKey(T.Team_Name__c)){
+            mapOfTeamAndTeamMember.get(T.Team_Name__c).add(T.Id);
+           
+        }
+         
+        else{
+            mapOfTeamAndTeamMember.put(T.Team_Name__c,new List<Id>{T.Id} ); 
+        }
+    }
+    
+    teamList = [select id, name from Team__c where id =: mapOfTeamAndTeamMember.keySet()];
+    system.debug(mapOfTeamAndTeamMember+'               '+teamList);
+
+    }
